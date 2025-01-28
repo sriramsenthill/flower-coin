@@ -1,109 +1,123 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-contract Token {
-    string public name = "Flower Coin";
-    string public symbol = "FLR";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-    uint public constant MAX_SUPPLY = 1000000 * 10 ** 18; // 1 million tokens with 18 decimals
+contract Token is IERC20, IERC20Metadata, ReentrancyGuard {
+    string private _name;
+    string private _symbol;
+    uint8 private constant _decimals = 18;
+    uint256 private _totalSupply;
 
     address public minter;
-    uint private _totalSupply;
+    mapping(address => uint256) private _balances;
+    mapping(address => mapping(address => uint256)) private _allowances;
 
-    mapping(address => uint) public balances;
-    // one address to multiple address and ids (transactions)
-    mapping(address => mapping(address => uint)) public allowances;
+    error InsufficientBalance(uint256 requested, uint256 available);
+    error InsufficientAllowance(uint256 requested, uint256 available);
 
-    constructor() {
+    constructor(string memory name_, string memory symbol_) {
+        _name = name_;
+        _symbol = symbol_;
         minter = msg.sender;
-        _totalSupply = 0;
     }
 
-    event Transfer(address indexed from, address indexed to, uint amount);
-    event Approval(address indexed owner, address indexed spender, uint amount);
-    error InsufficientBalance(uint requested, uint available);
-    error InsufficientAllowance(uint requested, uint available);
-
-    // Owner at the start or sometimes he want can like add amount
-    function mint(address _receiver, uint _amount) public {
-        require(msg.sender == minter, "Need owner only");
-        balances[_receiver] += _amount;
-        _totalSupply += _amount;
-
-        emit Transfer(address(0), _receiver, _amount);
+    function name() public view override returns (string memory) {
+        return _name;
     }
 
-    // Sender function...
-    function approve(address spender, uint256 amount) public {
-        if (amount > balances[msg.sender]) {
-            revert InsufficientBalance({
-                requested: amount,
-                available: balances[msg.sender]
-            });
-        }
-
-        allowances[msg.sender][spender] = amount;
-
-        emit Approval(msg.sender, spender, amount);
+    function symbol() public view override returns (string memory) {
+        return _symbol;
     }
 
-    function totalSupply() public view returns (uint) {
+    function decimals() public pure override returns (uint8) {
+        return _decimals;
+    }
+
+    function totalSupply() public view override returns (uint256) {
         return _totalSupply;
     }
 
-    function balanceOf(address account) public view returns (uint) {
-        return balances[account];
+    function balanceOf(address account) public view override returns (uint256) {
+        return _balances[account];
     }
 
-    // sender transfers tokens to to.
-    function transfer(address recipient, uint256 amount) public {
-        if (balances[msg.sender] < amount) {
-            revert InsufficientBalance({
-                requested: amount,
-                available: balances[msg.sender]
-            });
-        }
-
-        balances[msg.sender] -= amount;
-        balances[recipient] += amount;
-
-        emit Transfer(msg.sender, recipient, amount);
+    function transfer(
+        address recipient,
+        uint256 amount
+    ) public override nonReentrant returns (bool) {
+        _transfer(msg.sender, recipient, amount);
+        return true;
     }
 
-    // remaining tokens spender can spend from owner.
     function allowance(
         address owner,
         address spender
-    ) public view returns (uint) {
-        return allowances[owner][spender];
+    ) public view override returns (uint256) {
+        return _allowances[owner][spender];
     }
 
-    // spender to transfer tokens from an owner’s account.
+    function approve(
+        address spender,
+        uint256 amount
+    ) public override returns (bool) {
+        _approve(msg.sender, spender, amount);
+        return true;
+    }
+
     function transferFrom(
         address sender,
         address recipient,
         uint256 amount
-    ) public {
-        uint256 currentAllowance = allowances[sender][msg.sender];
+    ) public override nonReentrant returns (bool) {
+        _transfer(sender, recipient, amount);
+        _approve(sender, msg.sender, _allowances[sender][msg.sender] - amount);
+        return true;
+    }
 
-        if (currentAllowance < amount) {
-            revert InsufficientAllowance({
-                requested: amount,
-                available: currentAllowance
-            });
-        }
+    function mint(address recipient, uint256 amount) public {
+        require(msg.sender == minter, "Token: only minter can mint");
+        _mint(recipient, amount);
+    }
 
-        if (balances[sender] < amount) {
+    function _transfer(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) private {
+        require(sender != address(0), "Token: transfer from the zero address");
+        require(recipient != address(0), "Token: transfer to the zero address");
+
+        uint256 senderBalance = _balances[sender];
+        if (senderBalance < amount) {
             revert InsufficientBalance({
                 requested: amount,
-                available: balances[sender]
+                available: senderBalance
             });
         }
 
-        allowances[sender][msg.sender] -= amount;
-        balances[sender] -= amount;
-        balances[recipient] += amount;
+        _balances[sender] = senderBalance - amount;
+        _balances[recipient] += amount;
 
+        // The Transfer event is already defined in the IERC20 interface
         emit Transfer(sender, recipient, amount);
+    }
+
+    function _approve(address owner, address spender, uint256 amount) private {
+        require(owner != address(0), "Token: approve from the zero address");
+        require(spender != address(0), "Token: approve to the zero address");
+
+        _allowances[owner][spender] = amount;
+        emit Approval(owner, spender, amount);
+    }
+
+    function _mint(address account, uint256 amount) private {
+        require(account != address(0), "Token: mint to the zero address");
+
+        _totalSupply += amount;
+        _balances[account] += amount;
+        emit Transfer(address(0), account, amount);
     }
 }

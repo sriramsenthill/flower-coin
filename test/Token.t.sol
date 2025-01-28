@@ -10,10 +10,8 @@ contract TokenTest is Test {
     address public dummy_user1;
     address public dummy_user2;
 
-    constructor() {}
-
     function setUp() external {
-        flower = new Token();
+        flower = new Token("Flower Coin", "FLR");
         minter = address(this); // same as msg.sender
         dummy_user1 = address(0x123);
         dummy_user2 = address(0x456);
@@ -33,7 +31,7 @@ contract TokenTest is Test {
         uint256 mintAmount = 2000;
 
         vm.prank(dummy_user1);
-        vm.expectRevert("Need owner only");
+        vm.expectRevert("Token: only minter can mint");
         flower.mint(dummy_user1, mintAmount);
     }
 
@@ -64,7 +62,7 @@ contract TokenTest is Test {
         flower.mint(dummy_user1, mintAmount);
 
         vm.prank(dummy_user1);
-        flower.approve(dummy_user2, amountToApprove); // sent to dummy user 1k
+        flower.approve(dummy_user2, amountToApprove);
 
         assertEq(flower.allowance(dummy_user1, dummy_user2), amountToApprove);
     }
@@ -91,11 +89,9 @@ contract TokenTest is Test {
         vm.prank(minter);
         flower.mint(dummy_user1, mintAmount);
 
-        // Approve the spender with sufficient allowance
         vm.prank(dummy_user1);
         flower.approve(dummy_user2, amountToApprove);
 
-        // Transfer from the owner account using the spender
         vm.prank(dummy_user2);
         flower.transferFrom(dummy_user1, dummy_user2, amountToTransfer);
 
