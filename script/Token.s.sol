@@ -5,7 +5,7 @@ import {Script, console} from "forge-std/Script.sol";
 import {Token} from "../src/Token.sol";
 
 contract TokenScript is Script {
-    Token public dawg;
+    Token public flower;
 
     function setUp() public {}
 
@@ -14,7 +14,7 @@ contract TokenScript is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        dawg = new Token();
+        flower = new Token();
 
         vm.stopBroadcast();
     }

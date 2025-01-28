@@ -2,8 +2,8 @@
 pragma solidity ^0.8.19;
 
 contract Token {
-    string public name = "Dawg Coin";
-    string public symbol = "DWG";
+    string public name = "Flower Coin";
+    string public symbol = "FLR";
 
     uint public constant MAX_SUPPLY = 1000000 * 10 ** 18; // 1 million tokens with 18 decimals
 
