@@ -14,7 +14,7 @@ contract TokenScript is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        flower = new Token("Flower Coin", "FLR");
+        flower = new Token("Flower Coin", "FLR", 500, 1000);
 
         vm.stopBroadcast();
     }

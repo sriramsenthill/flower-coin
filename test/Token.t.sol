@@ -11,7 +11,7 @@ contract TokenTest is Test {
     address public dummy_user2;
 
     function setUp() external {
-        flower = new Token("Flower Coin", "FLR");
+        flower = new Token("Flower Coin", "FLR", 500, 1000);
         minter = address(this); // same as msg.sender
         dummy_user1 = address(0x123);
         dummy_user2 = address(0x456);
